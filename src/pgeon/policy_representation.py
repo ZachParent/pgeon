@@ -3,8 +3,8 @@ from typing import Collection, Optional
 
 import networkx as nx
 
-from pgeon.discretizer import Discretizer, StateRepresentation
-from pgeon.policy_approximator import Action, ProbabilityQuery
+from pgeon.discretizer import Discretizer, StateRepresentation, Action
+from pgeon.policy_approximator import ProbabilityQuery
 
 class IntentionMixin:
     ...
@@ -33,13 +33,6 @@ class PolicyRepresentation(abc.ABC):
 
 
 class GraphRepresentation(PolicyRepresentation):
-
-    # Prolly not needed as actual classes
-    # class Node:
-    #     ...
-    #
-    # class Edge:
-    #     ...
 
     # Package-agnostic
     class Graph(abc.ABC):

@@ -4,28 +4,8 @@ from gymnasium import Env
 from enum import Enum
 
 from pgeon.agent import Agent
-from pgeon.discretizer import Discretizer, StateRepresentation
+from pgeon.discretizer import Discretizer, StateRepresentation, Action
 from pgeon.policy_representation import PolicyRepresentation
-
-
-class Base:
-    def __init__(self,
-                 discretizer: Discretizer,
-                 ):
-        super().__init__()
-        self.discretizer = discretizer
-
-        self._is_fit = False
-        self._trajectories_of_last_fit: List[List[Any]] = []
-
-    def fit(self):
-        ...
-
-
-# INTENTIONAL POLICY GRAPHS = BASE POLICY GRAPH + INTENTION FUNCTIONALITY
-
-
-
 
 class Desire:
     ...
@@ -35,9 +15,6 @@ class ProbabilityQuery:
     ...
 
 
-class Action:
-    ...
-
 
 class PolicyApproximator(abc.ABC):
     def __init__(self,
@@ -46,6 +23,8 @@ class PolicyApproximator(abc.ABC):
                  ):
         self.discretizer: Discretizer = discretizer
         self.policy_represenation: PolicyRepresentation = policy_representation
+        self._is_fit = False
+        self._trajectories_of_last_fit: List[List[Any]] = []
 
     @abc.abstractmethod
     def save(self, format: str, path: Union[str, List[str]]):

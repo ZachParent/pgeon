@@ -1,5 +1,5 @@
 import abc
-from typing import Collection, Optional
+from typing import Collection, Optional, Tuple, Mapping, Any
 
 import networkx as nx
 
@@ -36,11 +36,48 @@ class GraphRepresentation(PolicyRepresentation):
 
     # Package-agnostic
     class Graph(abc.ABC):
-        ...
+        @abc.abstractmethod
+        def add_node(self, node: StateRepresentation, **kwargs) -> None:
+            ...
 
-    class NetworkXGraph(Graph):
+        @abc.abstractmethod
+        def add_nodes_from(self, nodes: Collection[StateRepresentation]) -> None:
+            ...
+
+        @abc.abstractmethod
+        def add_edge(self, node_from: StateRepresentation, node_to: StateRepresentation, action: Action) -> None:
+            ...
+
+        @abc.abstractmethod
+        def add_edges_from(self, edges: Collection[Tuple[StateRepresentation, StateRepresentation, Action]]) -> None:
+            ...
+
+        @abc.abstractmethod
+        def get_edge_data(self, node_from: StateRepresentation, node_to: StateRepresentation, action: Action) -> dict:
+            ...
+
+    class NetworkXGraph(nx.MultiDiGraph, Graph):
         def __init__(self):
-            self.graph_backend = nx.MultiDiGraph()
+            self.nx_graph = nx.MultiDiGraph()
+        
+        def __getitem__(self, node: StateRepresentation) -> Mapping[Action, Any]:
+            return self.nx_graph[node]
+
+        def add_node(self, node: StateRepresentation, **kwargs) -> None:
+            self.nx_graph.add_node(node, **kwargs)
+
+        def add_nodes_from(self, nodes: Collection[StateRepresentation], **kwargs) -> None:
+            self.nx_graph.add_nodes_from(nodes, **kwargs)
+
+        def add_edge(self, node_from: StateRepresentation, node_to: StateRepresentation, **kwargs) -> None:
+            self.nx_graph.add_edge(node_from, node_to, **kwargs)
+
+        def add_edges_from(self, edges: Collection[Tuple[StateRepresentation, StateRepresentation, Action]]) -> None:
+            self.nx_graph.add_edges_from(edges)
+
+        def get_edge_data(self, node_from: StateRepresentation, node_to: StateRepresentation, action: Action) -> Mapping[Action, Any]:
+            return self.nx_graph.get_edge_data(node_from, node_to, action)
+
 
     def __init__(self, graph_backend: str = "networkx"):
         super().__init__()

@@ -1,7 +1,7 @@
 import abc
 import random
 from collections import defaultdict
-from typing import List, Any, Collection, Optional, Union, Tuple, Dict, cast
+from typing import List, Any, Collection, Optional, Union, Tuple, Dict, cast, Sequence
 from gymnasium import Env
 from enum import Enum, auto
 
@@ -84,9 +84,9 @@ class PolicyApproximatorFromBasicObservation(OnlinePolicyApproximator):
         all_new_states_in_trajectory = {
             state
             for state in set(states_in_trajectory)
-            if not self.policy_representation.has_node(state)
+            if not self.policy_representation.has_state(state)
         }
-        self.policy_representation.add_nodes_from(
+        self.policy_representation.add_states_from(
             all_new_states_in_trajectory, frequency=0
         )
 
@@ -94,31 +94,30 @@ class PolicyApproximatorFromBasicObservation(OnlinePolicyApproximator):
             s: states_in_trajectory.count(s) for s in set(states_in_trajectory)
         }
 
-        nodes = self.policy_representation.nodes()
+        states = self.policy_representation.get_all_states()
         for state in state_frequencies:
-            for node in nodes:
+            for node in states:
                 if node == state:
-                    node_attrs = cast(
-                        Dict[str, Any],
-                        self.policy_representation.get_node_attributes("frequency"),
+                    state_attrs = self.policy_representation.get_state_attributes(
+                        "frequency"
                     )
-                    node_attrs[node] += state_frequencies[state]
-                    self.policy_representation.set_node_attributes(
-                        {node: node_attrs[node]}, "frequency"
+                    state_attrs[node] += state_frequencies[state]
+                    self.policy_representation.set_state_attributes(
+                        {node: state_attrs[node]}, "frequency"
                     )
                     break
 
         pointer = 0
         while (pointer + 1) < len(trajectory):
             state_from, action, state_to = trajectory[pointer : pointer + 3]
-            if not self.policy_representation.has_edge(
-                state_from, state_to, key=action
+            if not self.policy_representation.has_transition(
+                state_from, state_to, action
             ):
-                self.policy_representation.add_edge(
-                    state_from, state_to, key=action, frequency=0, action=action
+                self.policy_representation.add_transition(
+                    state_from, state_to, action, frequency=0
                 )
 
-            edge_data = self.policy_representation.get_edge_data(
+            edge_data = self.policy_representation.get_transition_data(
                 state_from, state_to, action
             )
             if edge_data:
@@ -126,33 +125,41 @@ class PolicyApproximatorFromBasicObservation(OnlinePolicyApproximator):
             pointer += 2
 
     def _normalize(self):
-        weights = self.policy_representation.get_node_attributes("frequency")
+        weights = self.policy_representation.get_state_attributes("frequency")
         total_frequency = sum([weights[state] for state in weights])
-        self.policy_representation.set_node_attributes(
+        self.policy_representation.set_state_attributes(
             {state: weights[state] / total_frequency for state in weights},
             "probability",
         )
 
-        for node in self.policy_representation.nodes():
-            out_edges = list(self.policy_representation.out_edges(node, data=True))
+        for state in self.policy_representation.get_all_states():
+            transitions = self.policy_representation.get_outgoing_transitions(
+                state, include_data=True
+            )
             total_frequency = 0
 
-            for _, _, data in out_edges:
-                if "frequency" in data:
-                    total_frequency += data["frequency"]
+            for transition in transitions:
+                if len(transition) >= 3:  # Check if we have data
+                    _, _, data = transition
+                    if isinstance(data, dict) and "frequency" in data:
+                        total_frequency += data["frequency"]
 
             if total_frequency > 0:
-                for _, dest_node, data in out_edges:
-                    if "frequency" in data:
-                        action = data.get("action")
-                        if action is not None:
-                            edge_data = self.policy_representation.get_edge_data(
-                                node, dest_node, action
-                            )
-                            if edge_data:
-                                edge_data["probability"] = (
-                                    edge_data["frequency"] / total_frequency
+                for transition in transitions:
+                    if len(transition) >= 3:  # Check if we have data
+                        _, dest_state, data = transition
+                        if isinstance(data, dict) and "frequency" in data:
+                            action_val = data.get("action")
+                            if action_val is not None:
+                                edge_data = (
+                                    self.policy_representation.get_transition_data(
+                                        state, dest_state, action_val
+                                    )
                                 )
+                                if edge_data:
+                                    edge_data["probability"] = (
+                                        edge_data["frequency"] / total_frequency
+                                    )
 
     def fit(
         self,
@@ -188,7 +195,7 @@ class PolicyApproximatorFromBasicObservation(OnlinePolicyApproximator):
         self,
         input_predicate: Union[StateRepresentation, Tuple[Enum, ...]],
         verbose: bool = False,
-    ):
+    ) -> StateRepresentation:
         """Returns the nearest predicate on the representation. If already exists, then we return the same predicate. If not,
         then tries to change the predicate to find a similar state (Maximum change: 1 value).
         If we don't find a similar state, then we return None
@@ -199,7 +206,7 @@ class PolicyApproximatorFromBasicObservation(OnlinePolicyApproximator):
         """
         # Predicate exists in the MDP
         cast_predicate = cast(StateRepresentation, input_predicate)
-        if self.policy_representation.has_node(cast_predicate):
+        if self.policy_representation.has_state(cast_predicate):
             if verbose:
                 print("NEAREST PREDICATE of existing predicate:", input_predicate)
             return cast_predicate
@@ -212,7 +219,7 @@ class PolicyApproximatorFromBasicObservation(OnlinePolicyApproximator):
             new_pred = random.choice(predicate_space)
             if verbose:
                 print("\tNEAREST PREDICATE in representation:", new_pred)
-            return new_pred
+            return cast(StateRepresentation, new_pred)
 
     def get_possible_actions(
         self, predicate: Union[StateRepresentation, Tuple[Enum, ...]]
@@ -232,7 +239,7 @@ class PolicyApproximatorFromBasicObservation(OnlinePolicyApproximator):
         cast_predicate = cast(StateRepresentation, predicate)
 
         # Predicate not in representation
-        if not self.policy_representation.has_node(cast_predicate):
+        if not self.policy_representation.has_state(cast_predicate):
             # Nearest predicate not found -> Random action
             if cast_predicate is None:
                 result = {
@@ -250,14 +257,22 @@ class PolicyApproximatorFromBasicObservation(OnlinePolicyApproximator):
                 return list(result.items())
 
         # Out edges with actions
-        out_edges = list(
-            self.policy_representation.out_edges(cast_predicate, data=True)
+        transitions = self.policy_representation.get_outgoing_transitions(
+            cast_predicate, include_data=True
         )
         possible_actions = []
 
-        for u, v, data in out_edges:
-            if "action" in data and "probability" in data:
-                possible_actions.append((u, data["action"], v, data["probability"]))
+        for transition in transitions:
+            if len(transition) >= 3:  # Check if we have data
+                _, _, data = transition
+                if (
+                    isinstance(data, dict)
+                    and "action" in data
+                    and "probability" in data
+                ):
+                    action = data["action"]
+                    probability = data["probability"]
+                    possible_actions.append((cast_predicate, action, None, probability))
 
         # Drop duplicated edges
         possible_actions = list(set(possible_actions))
@@ -265,7 +280,7 @@ class PolicyApproximatorFromBasicObservation(OnlinePolicyApproximator):
         if len(possible_actions) > 0:
             for _, action, _, weight in possible_actions:
                 all_actions = self.discretizer.all_actions()
-                if 0 <= action < len(all_actions):
+                if isinstance(action, int) and 0 <= action < len(all_actions):
                     result[all_actions[action]] += weight
             return sorted(result.items(), key=lambda x: x[1], reverse=True)
         # Predicate does not have out edges. Then return all the actions with same probability
@@ -292,11 +307,20 @@ class PolicyApproximatorFromBasicObservation(OnlinePolicyApproximator):
         """
         # Nodes where 'action' it's a possible action
         # All the nodes that has the same action (It has repeated nodes)
-        edges = list(self.policy_representation.edges(data=True))
+        all_transitions = self.policy_representation.get_all_transitions(
+            include_data=True
+        )
         all_nodes = []
-        for u, v, data in edges:
-            if "action" in data and data["action"] == action:
-                all_nodes.append(u)
+
+        for transition in all_transitions:
+            if len(transition) >= 3:  # Check if we have data
+                u, _, data = transition
+                if (
+                    isinstance(data, dict)
+                    and "action" in data
+                    and data["action"] == action
+                ):
+                    all_nodes.append(u)
 
         # Drop all the repeated nodes
         all_nodes = list(set(all_nodes))
@@ -304,15 +328,23 @@ class PolicyApproximatorFromBasicObservation(OnlinePolicyApproximator):
         # Nodes where 'action' it's the most probable action
         all_edges = []
         for u in all_nodes:
-            out_edges = list(self.policy_representation.out_edges(u, data=True))
+            out_edges = self.policy_representation.get_outgoing_transitions(
+                u, include_data=True
+            )
             all_edges.append(out_edges)
 
         all_best_actions = []
         for edges in all_edges:
             best_actions = []
-            for u, v, data in edges:
-                if "action" in data and "probability" in data:
-                    best_actions.append((u, data["action"], data["probability"]))
+            for edge in edges:
+                if len(edge) >= 3:  # Check if we have data
+                    u, _, data = edge
+                    if (
+                        isinstance(data, dict)
+                        and "action" in data
+                        and "probability" in data
+                    ):
+                        best_actions.append((u, data["action"], data["probability"]))
 
             if best_actions:
                 best_actions.sort(key=lambda x: x[2], reverse=True)
@@ -372,12 +404,16 @@ class PolicyApproximatorFromBasicObservation(OnlinePolicyApproximator):
         :return: List of [Action, destination_state, difference]
         """
         cast_state = cast(StateRepresentation, state)
-        out_edges = list(self.policy_representation.out_edges(cast_state, data=True))
+        out_edges = self.policy_representation.get_outgoing_transitions(
+            cast_state, include_data=True
+        )
         outs = []
 
-        for u, v, d in out_edges:
-            if "action" in d and "probability" in d:
-                outs.append((u, v, d["action"], d["probability"]))
+        for edge in out_edges:
+            if len(edge) >= 3:  # Check if we have data
+                u, v, d = edge
+                if isinstance(d, dict) and "action" in d and "probability" in d:
+                    outs.append((u, v, d["action"], d["probability"]))
 
         result = []
         for u, v, a, w in outs:

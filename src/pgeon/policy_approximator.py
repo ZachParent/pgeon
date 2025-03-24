@@ -1,7 +1,15 @@
 import abc
 import random
 from collections import defaultdict
-from typing import List, Any, Collection, Optional, Union, Tuple, Dict, cast, Sequence
+from typing import (
+    List,
+    Any,
+    Optional,
+    Union,
+    Tuple,
+    Dict,
+    cast,
+)
 from gymnasium import Env
 from enum import Enum, auto
 
@@ -76,7 +84,7 @@ class PolicyApproximatorFromBasicObservation(OnlinePolicyApproximator):
 
         return trajectory
 
-    def _update_with_trajectory(self, trajectory: List[Any]):
+    def _update_with_trajectory(self, trajectory: List[Any]) -> None:
         # Only even numbers are states
         states_in_trajectory = [
             trajectory[i] for i in range(len(trajectory)) if i % 2 == 0
@@ -124,7 +132,7 @@ class PolicyApproximatorFromBasicObservation(OnlinePolicyApproximator):
                 edge_data["frequency"] += 1
             pointer += 2
 
-    def _normalize(self):
+    def _normalize(self) -> None:
         weights = self.policy_representation.get_state_attributes("frequency")
         total_frequency = sum([weights[state] for state in weights])
         self.policy_representation.set_state_attributes(
@@ -166,7 +174,7 @@ class PolicyApproximatorFromBasicObservation(OnlinePolicyApproximator):
         n_episodes: int = 10,
         max_steps: Optional[int] = None,
         update: bool = False,
-    ):
+    ) -> "PolicyApproximatorFromBasicObservation":
         assert (
             n_episodes > 0
         ), "The number of episodes must be a positive integer number!"
@@ -223,7 +231,7 @@ class PolicyApproximatorFromBasicObservation(OnlinePolicyApproximator):
 
     def get_possible_actions(
         self, predicate: Union[StateRepresentation, Tuple[Enum, ...]]
-    ):
+    ) -> List[Tuple[Any, float]]:
         """Given a predicate, get the possible actions and it's probabilities
 
         3 cases:
@@ -291,19 +299,35 @@ class PolicyApproximatorFromBasicObservation(OnlinePolicyApproximator):
             }
             return list(result.items())
 
-    def question1(self, predicate, verbose=False):
+    def question1(
+        self,
+        predicate: Union[StateRepresentation, Tuple[Enum, ...]],
+        verbose: bool = False,
+    ) -> List[Tuple[Any, float]]:
+        """
+        Answers the question: What actions would you take in state X?
+
+        :param predicate: The state to query
+        :param verbose: Whether to print verbose output
+        :return: List of (action, probability) tuples
+        """
         possible_actions = self.get_possible_actions(predicate)
         if verbose:
             print("I will take one of these actions:")
             for action, prob in possible_actions:
-                print("\t->", action.name, "\tProb:", round(prob * 100, 2), "%")
+                if hasattr(action, "name"):
+                    print("\t->", action.name, "\tProb:", round(prob * 100, 2), "%")
+                else:
+                    print("\t->", action, "\tProb:", round(prob * 100, 2), "%")
         return possible_actions
 
-    def get_when_perform_action(self, action):
+    def get_when_perform_action(
+        self, action: Action
+    ) -> Tuple[List[StateRepresentation], List[StateRepresentation]]:
         """When do you perform action
 
         :param action: Valid action
-        :return: Set of states that has an out edge with the given action
+        :return: A tuple of (all_states_with_action, states_where_action_is_best)
         """
         # Nodes where 'action' it's a possible action
         # All the nodes that has the same action (It has repeated nodes)
@@ -356,9 +380,15 @@ class PolicyApproximatorFromBasicObservation(OnlinePolicyApproximator):
         best_nodes.sort()
         return all_nodes, best_nodes
 
-    def question2(self, action, verbose=False):
+    def question2(
+        self, action: Action, verbose: bool = False
+    ) -> List[StateRepresentation]:
         """
         Answers the question: When do you perform action X?
+
+        :param action: The action to query
+        :param verbose: Whether to print verbose output
+        :return: List of states where the action is the most probable
         """
         if verbose:
             print("*********************************")
@@ -374,33 +404,61 @@ class PolicyApproximatorFromBasicObservation(OnlinePolicyApproximator):
         # TODO: Extract common factors of resulting states
         return best_nodes
 
-    def substract_predicates(self, origin, destination):
+    def substract_predicates(
+        self,
+        origin: Union[str, List[str], StateRepresentation, Tuple[Enum, ...]],
+        destination: Union[str, List[str], StateRepresentation, Tuple[Enum, ...]],
+    ) -> Dict[str, Tuple[str, str]]:
         """
         Subtracts 2 predicates, getting only the values that are different
 
         :param origin: Origin predicate
-        :type origin: Union[str, list]
         :param destination: Destination predicate
-        :return dict: Dict with the different values
+        :return: Dict with the different values
         """
-        if type(origin) is str:
-            origin = origin.split("-")
-        if type(destination) is str:
-            destination = destination.split("-")
+        origin_list: List[str] = []
+        destination_list: List[str] = []
+
+        if isinstance(origin, str):
+            origin_list = origin.split("-")
+        elif isinstance(origin, list):
+            origin_list = origin
+        elif isinstance(origin, tuple):
+            # Handle Tuple case
+            origin_list = [str(item) for item in origin]
+        else:
+            # Handle StateRepresentation case - convert to string first
+            origin_list = [str(origin)]
+
+        if isinstance(destination, str):
+            destination_list = destination.split("-")
+        elif isinstance(destination, list):
+            destination_list = destination
+        elif isinstance(destination, tuple):
+            # Handle Tuple case
+            destination_list = [str(item) for item in destination]
+        else:
+            # Handle StateRepresentation case - convert to string first
+            destination_list = [str(destination)]
 
         result = {}
-        for value1, value2 in zip(origin, destination):
+        for value1, value2 in zip(origin_list, destination_list):
             if value1 != value2:
                 result[value1] = (value1, value2)
         return result
 
-    def nearby_predicates(self, state, greedy=False, verbose=False):
+    def nearby_predicates(
+        self,
+        state: Union[StateRepresentation, Tuple[Enum, ...]],
+        greedy: bool = False,
+        verbose: bool = False,
+    ) -> List[Tuple[Action, StateRepresentation, Dict[str, Tuple[str, str]]]]:
         """
         Gets nearby states from state
 
-        :param verbose:
-        :param greedy:
-        :param state: State
+        :param state: State to analyze
+        :param greedy: Whether to use greedy action selection
+        :param verbose: Whether to print verbose output
         :return: List of [Action, destination_state, difference]
         """
         cast_state = cast(StateRepresentation, state)
@@ -426,8 +484,20 @@ class PolicyApproximatorFromBasicObservation(OnlinePolicyApproximator):
         result = sorted(result, key=lambda x: x[1])
         return result
 
-    def get_most_probable_option(self, predicate, greedy=False, verbose=False):
-        """Get most probable action for a predicate"""
+    def get_most_probable_option(
+        self,
+        predicate: Union[StateRepresentation, Tuple[Enum, ...]],
+        greedy: bool = False,
+        verbose: bool = False,
+    ) -> Optional[Action]:
+        """
+        Get most probable action for a predicate
+
+        :param predicate: The state to query
+        :param greedy: Whether to use greedy action selection
+        :param verbose: Whether to print verbose output
+        :return: The most probable action or None
+        """
         cast_predicate = cast(StateRepresentation, predicate)
         if greedy:
             nearest_predicate = self.get_nearest_predicate(
@@ -449,9 +519,21 @@ class PolicyApproximatorFromBasicObservation(OnlinePolicyApproximator):
                 return possible_actions[-1][0]
             return None
 
-    def question3(self, predicate, action, greedy=False, verbose=False):
+    def question3(
+        self,
+        predicate: Union[StateRepresentation, Tuple[Enum, ...]],
+        action: Action,
+        greedy: bool = False,
+        verbose: bool = False,
+    ) -> List[Dict[str, Tuple[str, str]]]:
         """
         Answers the question: Why do you perform action X in state Y?
+
+        :param predicate: The state to query
+        :param action: The action to query
+        :param greedy: Whether to use greedy action selection
+        :param verbose: Whether to print verbose output
+        :return: List of explanations as dictionaries
         """
         if verbose:
             print("***********************************************")
@@ -505,7 +587,12 @@ class PolicyApproximatorFromBasicObservation(OnlinePolicyApproximator):
         return explanations
 
     def save(self, format: str, path: Union[str, List[str]]):
-        """Save the policy approximator"""
+        """
+        Save the policy approximator
+
+        :param format: The format to save in (e.g., 'json', 'pickle')
+        :param path: The path to save to
+        """
         if not self._is_fit:
             raise Exception("Policy approximator cannot be saved before fitting!")
 

@@ -5,9 +5,10 @@ import gymnasium
 
 from pgeon import GraphRepresentation, Predicate
 from pgeon.policy_approximator import PolicyApproximatorFromBasicObservation
-from pgeon.discretizer import StateRepresentation
+from pgeon.discretizer import StateRepresentation, Action as PgeonAction
 from test.domain.cartpole import CartpoleDiscretizer, Position, Velocity, Angle, Action
 from pgeon.agent import Agent
+
 
 class TestAskQuestionsToGraph(unittest.TestCase):
     env = gymnasium.make("CartPole-v1")
@@ -57,7 +58,11 @@ class TestAskQuestionsToGraph(unittest.TestCase):
         # Check that the actions are valid (LEFT or RIGHT in CartPole)
         actions = [action for action, _ in result]
         for action in actions:
-            self.assertIn(action, [Action.LEFT, Action.RIGHT])
+            # Check if action is an enum or its value
+            if isinstance(action, int):
+                self.assertIn(action, [Action.LEFT.value, Action.RIGHT.value])
+            else:
+                self.assertIn(action, [Action.LEFT, Action.RIGHT])
 
         # Check that probabilities sum to 1.0
         probabilities = [prob for _, prob in result]
@@ -86,7 +91,11 @@ class TestAskQuestionsToGraph(unittest.TestCase):
         # Check that the actions are valid
         actions = [action for action, _ in result]
         for action in actions:
-            self.assertIn(action, [Action.LEFT, Action.RIGHT])
+            # Check if action is an enum or its value
+            if isinstance(action, int):
+                self.assertIn(action, [Action.LEFT.value, Action.RIGHT.value])
+            else:
+                self.assertIn(action, [Action.LEFT, Action.RIGHT])
 
         # Check that probabilities sum to 1.0
         probabilities = [prob for _, prob in result]
@@ -113,7 +122,11 @@ class TestAskQuestionsToGraph(unittest.TestCase):
         # Check that the actions are valid
         actions = [action for action, _ in result]
         for action in actions:
-            self.assertIn(action, [Action.LEFT, Action.RIGHT])
+            # Check if action is an enum or its value
+            if isinstance(action, int):
+                self.assertIn(action, [Action.LEFT.value, Action.RIGHT.value])
+            else:
+                self.assertIn(action, [Action.LEFT, Action.RIGHT])
 
         # Check that probabilities sum to 1.0
         probabilities = [prob for _, prob in result]
@@ -122,7 +135,7 @@ class TestAskQuestionsToGraph(unittest.TestCase):
     def test_question_2(self):
         """Test when do you perform action X?"""
         # Test with action LEFT (0)
-        result = self.approximator.question2(Action.LEFT)
+        result = self.approximator.question2(Action.LEFT.value)
 
         # In a real-world scenario with random episodes,
         # we can't guarantee there will be states where LEFT is the best action.
@@ -146,7 +159,7 @@ class TestAskQuestionsToGraph(unittest.TestCase):
         )
 
         # Test with the state and action RIGHT (1)
-        result = self.approximator.question3(state, Action.RIGHT)
+        result = self.approximator.question3(state, Action.RIGHT.value)
 
         # This is more of a sanity check
         # The actual result will depend on the specific graph structure

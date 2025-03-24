@@ -1,12 +1,8 @@
 import abc
 from enum import Enum
-from typing import (
-    Sequence,
-    Type,
-    Iterator,
-    Collection,
-)
+from typing import Sequence, Type, Iterator
 from dataclasses import dataclass
+from typing import Collection
 
 
 class Predicate:

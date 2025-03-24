@@ -146,10 +146,7 @@ class PolicyRepresentation(abc.ABC):
 
     @abc.abstractmethod
     def get_all_transitions(self, include_data: bool = False) -> Collection[
-        Union[
-            Tuple[StateRepresentation, StateRepresentation, Action],
-            Tuple[StateRepresentation, StateRepresentation, Action, Dict[str, Any]],
-        ]
+            Tuple[StateRepresentation, StateRepresentation, Dict[str, Any]],
     ]:
         """Get all transitions, optionally including associated data."""
         ...
@@ -158,10 +155,7 @@ class PolicyRepresentation(abc.ABC):
     def get_outgoing_transitions(
         self, state: StateRepresentation, include_data: bool = False
     ) -> Collection[
-        Union[
-            Tuple[StateRepresentation, StateRepresentation, Action],
-            Tuple[StateRepresentation, StateRepresentation, Action, Dict[str, Any]],
-        ]
+            Tuple[StateRepresentation, StateRepresentation, Dict[str, Any]],
     ]:
         """Get all transitions originating from a state."""
         ...

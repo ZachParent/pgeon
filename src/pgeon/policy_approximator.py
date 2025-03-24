@@ -411,7 +411,7 @@ class PolicyApproximatorFromBasicObservation(OnlinePolicyApproximator):
 
         for edge in out_edges:
             if len(edge) >= 3:  # Check if we have data
-                u, v, d, = edge
+                u, v, d = edge
                 if isinstance(d, dict) and "action" in d and "probability" in d:
                     outs.append((u, v, d["action"], d["probability"]))
 

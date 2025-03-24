@@ -1,8 +1,12 @@
 import abc
 from enum import Enum
-from typing import Sequence, Type, Iterator, TypeVar, Union, Collection
+from typing import (
+    Sequence,
+    Type,
+    Iterator,
+    Collection,
+)
 from dataclasses import dataclass
-from typing import List
 
 
 class Predicate:
@@ -36,9 +40,21 @@ class StateRepresentation:
     predicates: Collection[Predicate]
 
     def __eq__(self, other):
-        if not isinstance(other, StateRepresentation):
-            return False
-        return self.predicates == other.predicates
+        # If comparing with a tuple, convert the tuple to a list for comparison
+        if isinstance(other, tuple):
+            # Compare the predicates with the tuple items
+            if len(self.predicates) != len(other):
+                return False
+            return all(p1 == p2 for p1, p2 in zip(self.predicates, other))
+
+        # If comparing with another StateRepresentation
+        if isinstance(other, StateRepresentation):
+            # If both are StateRepresentation, compare their predicates
+            if len(self.predicates) != len(other.predicates):
+                return False
+            return all(p1 == p2 for p1, p2 in zip(self.predicates, other.predicates))
+
+        return False
 
     def __hash__(self):
         return hash(tuple(self.predicates))

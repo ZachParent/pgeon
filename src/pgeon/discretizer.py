@@ -1,12 +1,14 @@
 import abc
 from enum import Enum
-from typing import Sequence, Type, Iterator
+from typing import Sequence, Type, Iterator, TypeVar, Union, Collection
+from dataclasses import dataclass
+from typing import List
 
 
 class Predicate:
-    def __init__(self, predicate: Type[Enum], value: Sequence[Type[Enum]]):
+    def __init__(self, predicate: Type[Enum], value: Sequence[Enum]):
         self.predicate: Type[Enum] = predicate
-        self.value: Sequence[Type[Enum]] = value
+        self.value: Sequence[Enum] = value
 
     def __eq__(self, other):
         if not isinstance(other, Predicate):
@@ -29,14 +31,25 @@ class Predicate:
             return hash(self.predicate) < hash(other.predicate)
 
 
+@dataclass(frozen=True)
 class StateRepresentation:
-    ...
+    predicates: Collection[Predicate]
 
-class Action:
-    ...
+    def __eq__(self, other):
+        if not isinstance(other, StateRepresentation):
+            return False
+        return self.predicates == other.predicates
 
-class PredicateBasedStateRepresentation(StateRepresentation):
-    ...
+    def __hash__(self):
+        return hash(tuple(self.predicates))
+
+
+# Action type
+Action = int
+
+
+class PredicateBasedStateRepresentation(StateRepresentation): ...
+
 
 class Discretizer(metaclass=abc.ABCMeta):
     @classmethod

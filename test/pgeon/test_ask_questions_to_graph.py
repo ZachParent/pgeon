@@ -7,7 +7,7 @@ from pgeon import GraphRepresentation, Predicate
 from pgeon.policy_approximator import PolicyApproximatorFromBasicObservation
 from pgeon.discretizer import StateRepresentation
 from test.domain.cartpole import CartpoleDiscretizer, Position, Velocity, Angle, Action
-
+from pgeon.agent import Agent
 
 class TestAskQuestionsToGraph(unittest.TestCase):
     env = gymnasium.make("CartPole-v1")
@@ -17,7 +17,7 @@ class TestAskQuestionsToGraph(unittest.TestCase):
     # Setup the approximator using data from CSV files
     # In a real implementation, we would load from CSV files into the representation
     # For this example, we're using a dummy agent and running one episode to populate the representation
-    class DummyAgent:
+    class DummyAgent(Agent):
         def act(self, observation):
             return 0  # Always return action 0 (LEFT)
 

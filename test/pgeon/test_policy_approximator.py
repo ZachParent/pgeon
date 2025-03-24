@@ -1,8 +1,9 @@
 import unittest
-from typing import Dict, Any, Tuple, cast, Optional, List
+from typing import Dict, Any, Tuple, cast, Optional, List, Type, Sequence
 
 import networkx as nx
 import numpy as np
+from enum import Enum
 
 from pgeon import GraphRepresentation, Predicate
 from pgeon.policy_approximator import PolicyApproximatorFromBasicObservation
@@ -39,11 +40,12 @@ class TestPolicyApproximator(unittest.TestCase):
 
         # Patch the get_predicate_space method in the discretizer for testing
         self.original_get_predicate_space = self.discretizer.get_predicate_space
+        # Return tuples of Predicate objects - that's what it expects
         self.discretizer.get_predicate_space = lambda: [
-            self.state0,
-            self.state1,
-            self.state2,
-            self.state3,
+            (Predicate(State, [State.ZERO]),),
+            (Predicate(State, [State.ONE]),),
+            (Predicate(State, [State.TWO]),),
+            (Predicate(State, [State.THREE]),),
         ]
 
     def tearDown(self):

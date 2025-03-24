@@ -312,13 +312,13 @@ class TestPolicyRepresentation(unittest.TestCase):
         obs, _ = env.reset()
 
         # Check that the initial observation matches our discretization
-        initial_state = self.discretizer.discretize(obs)
+        initial_state = StateRepresentation(self.discretizer.discretize(obs))
         self.assertEqual(initial_state, self.state0)
 
         # Make one step and verify transition
         state = initial_state
         next_obs, _, _, _, _ = env.step(self.action0)
-        next_state = self.discretizer.discretize(next_obs)
+        next_state = StateRepresentation(self.discretizer.discretize(next_obs))
 
         # Check that the state transition is as expected
         self.assertTrue(

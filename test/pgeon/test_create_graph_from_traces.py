@@ -27,10 +27,10 @@ class TestCreateGraphFromTraces(unittest.TestCase):
         )
 
         # Create states for testing
-        self.state0 = cast(StateRepresentation, (Predicate(State, [State.ZERO]),))
-        self.state1 = cast(StateRepresentation, (Predicate(State, [State.ONE]),))
-        self.state2 = cast(StateRepresentation, (Predicate(State, [State.TWO]),))
-        self.state3 = cast(StateRepresentation, (Predicate(State, [State.THREE]),))
+        self.state0 = StateRepresentation([Predicate(State, [State.ZERO])])
+        self.state1 = StateRepresentation([Predicate(State, [State.ONE])])
+        self.state2 = StateRepresentation([Predicate(State, [State.TWO])])
+        self.state3 = StateRepresentation([Predicate(State, [State.THREE])])
 
         # Action for testing
         self.action0 = 0  # TestingEnv only supports action 0

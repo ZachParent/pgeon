@@ -1,8 +1,8 @@
 import unittest
-from typing import cast, List, Type, Tuple
+from typing import cast, Type
 
 from enum import Enum
-from pgeon import GraphRepresentation, Predicate, PolicyRepresentation
+from pgeon import GraphRepresentation, Predicate
 from pgeon.policy_approximator import PolicyApproximatorFromBasicObservation
 from test.domain.test_env import TestingEnv, TestingDiscretizer, TestingAgent, State
 from pgeon.discretizer import StateRepresentation

@@ -3,10 +3,11 @@ from typing import Dict, Any, Tuple, cast, Optional, List
 
 import networkx as nx
 import numpy as np
+from torch import P
 
 from pgeon import GraphRepresentation, Predicate
 from test.domain.test_env import State, TestingDiscretizer, TestingEnv
-from pgeon.discretizer import StateRepresentation
+from pgeon.discretizer import PredicateBasedStateRepresentation, StateRepresentation
 from pgeon.policy_representation import Action
 
 
@@ -20,10 +21,10 @@ class TestPolicyRepresentation(unittest.TestCase):
         self.discretizer = TestingDiscretizer()
 
         # Create states and actions for testing
-        self.state0 = StateRepresentation((Predicate(State, [State.ZERO]),))
-        self.state1 = StateRepresentation((Predicate(State, [State.ONE]),))
-        self.state2 = StateRepresentation((Predicate(State, [State.TWO]),))
-        self.state3 = StateRepresentation((Predicate(State, [State.THREE]),))
+        self.state0 = PredicateBasedStateRepresentation((Predicate(State, [State.ZERO]),))
+        self.state1 = PredicateBasedStateRepresentation((Predicate(State, [State.ONE]),))
+        self.state2 = PredicateBasedStateRepresentation((Predicate(State, [State.TWO]),))
+        self.state3 = PredicateBasedStateRepresentation((Predicate(State, [State.THREE]),))
 
         # TestingEnv only supports action 0
         self.action0: Action = 0
@@ -95,7 +96,7 @@ class TestPolicyRepresentation(unittest.TestCase):
         self.assertEqual(transition_data["action"], self.action0)
 
         # Add multiple transitions
-        transitions: List[Tuple[StateRepresentation, StateRepresentation, Action]] = [
+        transitions= [
             (self.state1, self.state2, self.action0),
             (self.state2, self.state3, self.action0),
             (self.state3, self.state0, self.action0),
@@ -137,7 +138,7 @@ class TestPolicyRepresentation(unittest.TestCase):
         # All states have outgoing transitions in our cycle
 
         # Test with a state that doesn't exist
-        nonexistent_state = StateRepresentation((Predicate(State, [State.ZERO]), Predicate(State, [State.ONE])))
+        nonexistent_state = PredicateBasedStateRepresentation((Predicate(State, [State.ZERO]), Predicate(State, [State.ONE])))
         actions = self.representation.get_possible_actions(nonexistent_state)
         self.assertEqual(len(actions), 0)
 
@@ -159,7 +160,7 @@ class TestPolicyRepresentation(unittest.TestCase):
         self.assertIn(self.state1, next_states)
 
         # Test with a state that doesn't exist
-        nonexistent_state = StateRepresentation((Predicate(State, [State.ZERO]), Predicate(State, [State.ONE])))
+        nonexistent_state = PredicateBasedStateRepresentation((Predicate(State, [State.ZERO]), Predicate(State, [State.ONE])))
         next_states = self.representation.get_possible_next_states(nonexistent_state)
         self.assertEqual(len(next_states), 0)
 
@@ -175,7 +176,7 @@ class TestPolicyRepresentation(unittest.TestCase):
         self.assertIn(self.state1, transitions[self.action0])
 
         # Test with a state that doesn't exist
-        nonexistent_state = StateRepresentation((Predicate(State, [State.ZERO]), Predicate(State, [State.ONE])))
+        nonexistent_state = PredicateBasedStateRepresentation((Predicate(State, [State.ZERO]), Predicate(State, [State.ONE])))
         transitions = self.representation.get_transitions_from_state(nonexistent_state)
         self.assertEqual(len(transitions), 0)
 
@@ -195,7 +196,7 @@ class TestPolicyRepresentation(unittest.TestCase):
         self.assertEqual(attrs[self.state1], 1)
 
         # Test setting attributes
-        new_attrs = {self.state0: 10, self.state1: 20}
+        new_attrs: Dict[StateRepresentation, int] = {self.state0: 10, self.state1: 20}
         self.representation.set_state_attributes(new_attrs, "frequency")
 
         # Verify attributes were updated
@@ -303,13 +304,13 @@ class TestPolicyRepresentation(unittest.TestCase):
         obs, _ = env.reset()
 
         # Check that the initial observation matches our discretization
-        initial_state = StateRepresentation(self.discretizer.discretize(obs))
+        initial_state = PredicateBasedStateRepresentation(self.discretizer.discretize(obs))
         self.assertEqual(initial_state, self.state0)
 
         # Make one step and verify transition
         state = initial_state
         next_obs, _, _, _, _ = env.step(self.action0)
-        next_state = StateRepresentation(self.discretizer.discretize(next_obs))
+        next_state = PredicateBasedStateRepresentation(self.discretizer.discretize(next_obs))
 
         # Check that the state transition is as expected
         self.assertTrue(

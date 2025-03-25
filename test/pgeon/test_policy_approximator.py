@@ -8,7 +8,7 @@ from enum import Enum
 from pgeon import GraphRepresentation, Predicate
 from pgeon.policy_approximator import PolicyApproximatorFromBasicObservation
 from test.domain.test_env import State, TestingDiscretizer, TestingEnv, TestingAgent
-from pgeon.discretizer import StateRepresentation
+from pgeon.discretizer import PredicateBasedStateRepresentation
 from pgeon.policy_representation import Action
 
 
@@ -30,10 +30,10 @@ class TestPolicyApproximator(unittest.TestCase):
         )
 
         # Create states and actions for testing
-        self.state0 = StateRepresentation((Predicate(State, [State.ZERO]),))
-        self.state1 = StateRepresentation((Predicate(State, [State.ONE]),))
-        self.state2 = StateRepresentation((Predicate(State, [State.TWO]),))
-        self.state3 = StateRepresentation((Predicate(State, [State.THREE]),))
+        self.state0 = PredicateBasedStateRepresentation((Predicate(State, [State.ZERO]),))
+        self.state1 = PredicateBasedStateRepresentation((Predicate(State, [State.ONE]),))
+        self.state2 = PredicateBasedStateRepresentation((Predicate(State, [State.TWO]),))
+        self.state3 = PredicateBasedStateRepresentation((Predicate(State, [State.THREE]),))
 
         # TestingEnv only supports action 0
         self.action0: Action = 0  # type: ignore
@@ -120,7 +120,7 @@ class TestPolicyApproximator(unittest.TestCase):
         )  # Probability should be 1.0 since there's only one possible action
 
         # Test with a state that doesn't exist in the representation
-        nonexistent_state = StateRepresentation((Predicate(State, [State.ZERO]), Predicate(State, [State.ONE])))
+        nonexistent_state = PredicateBasedStateRepresentation((Predicate(State, [State.ZERO]), Predicate(State, [State.ONE])))
         possible_actions = self.approximator.get_possible_actions(nonexistent_state)
         self.assertEqual(
             len(possible_actions), 1
@@ -138,7 +138,7 @@ class TestPolicyApproximator(unittest.TestCase):
         self.assertEqual(nearest, self.state0)
 
         # Test with a state that doesn't exist
-        nonexistent_state = StateRepresentation((Predicate(State, [State.ZERO]), Predicate(State, [State.ONE])))
+        nonexistent_state = PredicateBasedStateRepresentation((Predicate(State, [State.ZERO]), Predicate(State, [State.ONE])))
         nearest = self.approximator.get_nearest_predicate(nonexistent_state)
         # The result should be a state in the representation
         self.assertIn(nearest, [self.state0, self.state1, self.state2, self.state3])

@@ -5,7 +5,7 @@ import numpy as np
 
 from pgeon import GraphRepresentation, Predicate
 from pgeon.policy_approximator import PolicyApproximatorFromBasicObservation
-from pgeon.discretizer import StateRepresentation
+from pgeon.discretizer import PredicateBasedStateRepresentation
 from test.domain.test_env import State, TestingDiscretizer, TestingEnv, TestingAgent
 
 
@@ -27,10 +27,10 @@ class TestCreateGraphFromTraces(unittest.TestCase):
         )
 
         # Create states for testing
-        self.state0 = StateRepresentation((Predicate(State, [State.ZERO]),))
-        self.state1 = StateRepresentation((Predicate(State, [State.ONE]),))
-        self.state2 = StateRepresentation((Predicate(State, [State.TWO]),))
-        self.state3 = StateRepresentation((Predicate(State, [State.THREE]),))
+        self.state0 = PredicateBasedStateRepresentation((Predicate(State, [State.ZERO]),))
+        self.state1 = PredicateBasedStateRepresentation((Predicate(State, [State.ONE]),))
+        self.state2 = PredicateBasedStateRepresentation((Predicate(State, [State.TWO]),))
+        self.state3 = PredicateBasedStateRepresentation((Predicate(State, [State.THREE]),))
 
         # Action for testing
         self.action0 = 0  # TestingEnv only supports action 0
